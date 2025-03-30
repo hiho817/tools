@@ -69,34 +69,30 @@ def PSD (data, sample_rate):
     plt.grid()
     plt.show()
 
-# Define multiple configurations as YAML
-configs_yaml = """
-trq_state:
-    plot_num: [2, 2]
-    plot_column:
-        - [state_trq_r_a, state_trq_l_a]
-        - [state_trq_r_b, state_trq_l_b]
-        - [state_trq_r_c, state_trq_l_c]
-        - [state_trq_r_d, state_trq_l_d]
-    plot_title:
-        - [Right Front Torque]
-        - [Left Front Torque]
-        - [Right Behind Torque]
-        - [Left Behind Torque]
+# Load configurations from YAML file
+def load_yaml_config(file_path):
+    """
+    Load YAML configurations from a file.
+    
+    Parameters:
+        file_path (str): Path to the YAML configuration file.
+        
+    Returns:
+        dict: Loaded configuration dictionary or empty dict if file not found.
+    """
+    try:
+        with open(file_path, 'r') as file:
+            return yaml.safe_load(file)
+    except FileNotFoundError:
+        print(f"Warning: Configuration file {file_path} not found. Using default configs.")
+        return {}
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML file: {e}")
+        return {}
 
-trq_ratio_state:
-    plot_num: [2, 2]
-    plot_column:
-        - [state_trq_r_a/state_trq_l_a]
-        - [state_trq_r_b/state_trq_l_b]
-        - [state_trq_r_c/state_trq_l_c]
-        - [state_trq_r_d/state_trq_l_d]
-    plot_title:
-        - [Right Front Torque ratio]
-        - [Left Front Torque ratio]
-        - [Right Behind Torque ratio]
-        - [Left Behind Torque ratio]
-"""
+# Get configurations from file
+configs = load_yaml_config("plotter_config.yaml")
+configs_yaml = yaml.dump(configs) if configs else print("The configuration file is missing.")
 
 if __name__ == "__main__":
     

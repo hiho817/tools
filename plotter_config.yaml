@@ -1,0 +1,25 @@
+trq_state:
+    plot_num: [2, 2]
+    plot_column:
+        - [state_trq_r_a, state_trq_l_a]
+        - [state_trq_r_b, state_trq_l_b]
+        - [state_trq_r_c, state_trq_l_c]
+        - [state_trq_r_d, state_trq_l_d]
+    plot_title:
+        - [Right Front Torque]
+        - [Left Front Torque]
+        - [Right Behind Torque]
+        - [Left Behind Torque]
+
+trq_ratio_state:
+    plot_num: [2, 2]
+    plot_column:
+        - [state_trq_r_a/state_trq_l_a]
+        - [state_trq_r_b/state_trq_l_b]
+        - [state_trq_r_c/state_trq_l_c]
+        - [state_trq_r_d/state_trq_l_d]
+    plot_title:
+        - [Right Front Torque ratio]
+        - [Left Front Torque ratio]
+        - [Right Behind Torque ratio]
+        - [Left Behind Torque ratio]
