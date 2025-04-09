@@ -23,3 +23,20 @@ trq_ratio_state:
         - [Left Front Torque ratio]
         - [Right Behind Torque ratio]
         - [Left Behind Torque ratio]
+
+p_v_state:
+    plot_num: [2, 3]
+    plot_column:
+        - [v_.x, vicon_v_x]
+        - [v_.x, vicon_v_y]
+        - [v_.x, vicon_v_z]
+        - [p.x, vicon_p_x]
+        - [p.y, vicon_p_y]
+        - [p.z, vicon_p_z]
+    plot_title:
+        - [VX]
+        - [VY]
+        - [VZ]
+        - [PX]
+        - [PY]
+        - [PZ]

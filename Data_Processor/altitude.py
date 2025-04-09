@@ -81,7 +81,7 @@ def compute_attitude_from_rect_points(O1, O2, O3, O4):
     """
     # Check for NaN values in the input points
     if any(np.isnan(O1)) or any(np.isnan(O2)) or any(np.isnan(O3)) or any(np.isnan(O4)):
-        return np.nan, np.nan, np.nan
+        return np.nan, np.nan, np.nan, [np.nan, np.nan, np.nan]
     # Stack the points into an array of shape (4,3)
     points = np.array([O1, O2, O3, O4])
     
@@ -133,12 +133,12 @@ def compute_attitude_from_rect_points(O1, O2, O3, O4):
     pitch = np.arcsin(-R[2, 0])
     roll  = np.arctan2(R[2, 1], R[2, 2])
     
-    return roll, pitch, yaw
+    return roll, pitch, yaw, centroid
 
 # Example usage:
 if __name__ == "__main__":
 
-    ros_data = ROS_Data("data/imu_test_from_imu.csv")
+    ros_data = ROS_Data("data/stair_2.csv")
     ros_data.load_data()
     ros_data.process_data()
     ros_data_process = ros_data.get_processed_data()
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     imu_data = pd.DataFrame(imu_data)
     imu_altitude_df = quaternion_to_euler_df(imu_data)
 
-    vicon_data = VICON_Data("data/imu_test_from_vicon.csv", trigger_name="20250324:O5")
+    vicon_data = VICON_Data("data/stair_2_vicon.csv", trigger_name="New Subject:O5")
     vicon_data.load_data()
     LF = restrct(vicon_data.traj_data, 'O1')
     RF = restrct(vicon_data.traj_data, 'O2')
@@ -181,7 +181,7 @@ if __name__ == "__main__":
         
         # print(f"LF: {LF_point}, RF: {RF_point}, RB: {RB_point}, LB: {LB_point}")
 
-        roll, pitch, yaw = compute_attitude_from_rect_points(LF_point, RF_point, RB_point, LB_point)
+        roll, pitch, yaw, centroid = compute_attitude_from_rect_points(LF_point, RF_point, RB_point, LB_point)
         vicon_altitude.append({'roll': roll, 'pitch': pitch, 'yaw': yaw})
 
     # Convert the list of Euler angles into a DataFrame for further analysis
@@ -212,9 +212,9 @@ if __name__ == "__main__":
 
     # Plot roll, pitch and yaw on separate subplots
     # Plot Vicon data
-    axs[0].plot(vicon_altitude_df.index*2, vicon_altitude_df['roll'], 'r-', label='Vicon Roll')
-    axs[1].plot(vicon_altitude_df.index*2, vicon_altitude_df['pitch'], 'g-', label='Vicon Pitch')
-    axs[2].plot(vicon_altitude_df.index*2, vicon_altitude_df['yaw'], 'b-', label='Vicon Yaw')
+    axs[0].plot(vicon_altitude_df.index*5, vicon_altitude_df['roll'], 'r-', label='Vicon Roll')
+    axs[1].plot(vicon_altitude_df.index*5, vicon_altitude_df['pitch'], 'g-', label='Vicon Pitch')
+    axs[2].plot(vicon_altitude_df.index*5, vicon_altitude_df['yaw'], 'b-', label='Vicon Yaw')
 
     # Plot IMU data
     axs[0].plot(imu_altitude_df.index, imu_altitude_df['roll'], 'r--', label='IMU Roll')

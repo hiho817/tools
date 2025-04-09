@@ -1,6 +1,9 @@
-from Data_Processor import ROS_Data
+from Data_Processor import ROS_Data, VICON_Data
+from Marker_Vector import restrct
+from altitude import compute_attitude_from_rect_points
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import yaml
 
 def low_pass_filter(data, cutoff_freq, sample_rate):
@@ -97,11 +100,11 @@ configs_yaml = yaml.dump(configs) if configs else print("The configuration file 
 if __name__ == "__main__":
     
     
-    file_path = "data/imu_test_from_imu.csv"  # Replace with your actual file path
-    file_sample_rate = 1000  # Replace with your actual sample rate
+    file_path = "data/out_0407_walk_kld.csv"  # Replace with your actual file path
+    file_sample_rate = 200  # Replace with your actual sample rate
     
     # Select which configuration to use
-    config_name = "trq_ratio_state"  # Change this to select different configurations
+    config_name = "p_v_state"  # Change this to select different configurations
 
     # Load all configurations
     all_configs = yaml.safe_load(configs_yaml)
@@ -120,12 +123,49 @@ if __name__ == "__main__":
     print(f"Using configuration: {config_name}")
 
     ##############
-    ros_data = ROS_Data(file_path)
-    ros_data.load_data()
-    ros_data.process_data()
-    ros_data = ros_data.get_processed_data()
+    data = ROS_Data(file_path)
+    data.load_data()
+    data.process_data()
+    data = data.get_processed_data()
 
-    # Create a single figure with 2x2 subplots
+    vicon_data = VICON_Data("data/0407_walk_vicon.csv", trigger_name="20250407:Trigger")
+    vicon_data.load_data()
+    LF = restrct(vicon_data.traj_data, 'O1')
+    RF = restrct(vicon_data.traj_data, 'O2')
+    RB = restrct(vicon_data.traj_data, 'O3')
+    LB = restrct(vicon_data.traj_data, 'O4')
+
+    vicon_position = []
+    vicon_velocity = []
+    last_centroid = [0, 0, 0]
+    # for idx in vicon_data.traj_data.index[vicon_data.trigger_index+1:]:
+    #     # For each marker, extract its X, Y, Z as a list of floats.
+    #     try:
+    #         # Parse coordinates safely, replacing empty strings with NaN
+    #         def safe_float(val):
+    #             if val == '' or pd.isna(val):
+    #                 return np.nan
+    #             return float(val)
+            
+    #         LF_point = [safe_float(LF.loc[idx, col]) for col in ['X', 'Y', 'Z']]
+    #         RF_point = [safe_float(RF.loc[idx, col]) for col in ['X', 'Y', 'Z']]
+    #         RB_point = [safe_float(RB.loc[idx, col]) for col in ['X', 'Y', 'Z']]
+    #         LB_point = [safe_float(LB.loc[idx, col]) for col in ['X', 'Y', 'Z']]
+        
+    #     except Exception as e:
+    #         print(f"Error processing frame {idx}: {e}")
+    #         continue
+        
+
+
+    #     roll, pitch, yaw, centroid = compute_attitude_from_rect_points(LF_point, RF_point, RB_point, LB_point)
+    #     vicon_position.append({'vicon_p_x': centroid[0], 'vicon_p_y': centroid[1], 'vicon_p_z': centroid[2]})
+    #     vicon_velocity.append({'vicon_v_x': (centroid[0] - last_centroid[0]), 'vicon_v_y': (centroid[1] - last_centroid[1]), 'vicon_v_z': (centroid[2] - last_centroid[2])})
+    #     last_centroid = centroid
+        
+    # data = pd.concat([data, pd.DataFrame(vicon_position)], axis=1)
+    # data = pd.concat([data, pd.DataFrame(vicon_velocity)], axis=1)
+
     fig, axes = plt.subplots(plot_num[0], plot_num[1], figsize=(15, 10))
     axes = axes.flatten()  # Flatten the 2D array of axes for easier indexing
 
@@ -140,8 +180,8 @@ if __name__ == "__main__":
                 for op in operators:
                     if op in column:
                         left, right = column.split(op)
-                        left_data = getattr(ros_data, left.strip())
-                        right_data = getattr(ros_data, right.strip())
+                        left_data = getattr(data, left.strip())
+                        right_data = getattr(data, right.strip())
                         
                         if op == '+':
                             data = left_data + right_data
@@ -154,21 +194,21 @@ if __name__ == "__main__":
                             data = np.divide(left_data, right_data, out=np.zeros_like(left_data), where=right_data!=0)
                         break
             else:
-                # Get data from ros_data using attribute access
-                data = getattr(ros_data, column)
+                # Get data from data using attribute access
+                plot_data = getattr(data, column)
 
-            # Apply low-pass filter to the data
-            cutoff_freq = 10
-            filtered_data = low_pass_filter(data, cutoff_freq, file_sample_rate)
+            # # Apply low-pass filter to the data
+            # cutoff_freq = 10
+            # data = low_pass_filter(data, cutoff_freq, file_sample_rate)
 
             # Calculate time axis
-            time = np.arange(len(data)) / file_sample_rate
+            time = np.arange(len(plot_data)) / file_sample_rate
             # Plot data on the current subplot
-            ax.plot(time, filtered_data, label=column)
+            ax.plot(time, plot_data, label=column)
         
         ax.set_title(title)
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Torque')
+        ax.set_xlabel('')
+        ax.set_ylabel('')
         ax.legend()
         ax.grid(True)
 
