@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import yaml
 
+YAML = False 
+
 def low_pass_filter(data, cutoff_freq, sample_rate):
     """
     Apply a low-pass filter to the data.
@@ -93,51 +95,71 @@ def load_yaml_config(file_path):
         print(f"Error parsing YAML file: {e}")
         return {}
 
-# Get configurations from file
-configs = load_yaml_config("plotter_config.yaml")
-configs_yaml = yaml.dump(configs) if configs else print("The configuration file is missing.")
-
 if __name__ == "__main__":
     
     
-    file_path = "data/out_0407_walk_kld.csv"  # Replace with your actual file path
-    file_sample_rate = 200  # Replace with your actual sample rate
+    file_path = ["data/filtered_odometry.csv", "data/filtered_odometry_odo.csv","data/z_test.csv"]
+    file_sample_rate = 1000.0
     
-    # Select which configuration to use
-    config_name = "p_v_state"  # Change this to select different configurations
+    if YAML:
+        # Get configurations from file
+        configs = load_yaml_config("plotter_config.yaml")
+        configs_yaml = yaml.dump(configs) if configs else print("The configuration file is missing.")
+        # Select which configuration to use
+        config_name = "p_v_state"  # Change this to select different configurations
 
-    # Load all configurations
-    all_configs = yaml.safe_load(configs_yaml)
+        # Load all configurations
+        all_configs = yaml.safe_load(configs_yaml)
+        
+        # Check if the selected configuration exists
+        if config_name not in all_configs:
+            print(f"Configuration '{config_name}' not found. Available configurations: {list(all_configs.keys())}")
+            exit(1)
+        
+        # Extract configuration values
+        selected_config = all_configs[config_name]
+        plot_num = selected_config['plot_num']
+        plot_column = selected_config['plot_column']
+        plot_title = selected_config['plot_title']
+        
+        print(f"Using configuration: {config_name}")
+
+    else:
+        # Default configurations
+        plot_num = [1, 3]
+        plot_column = [['sim_pos_x', 'p.x','filtered_p.x'], 
+                       ['sim_pos_y', 'p.y','filtered_p.y'], 
+                       ['sim_pos_z', 'p.z','filtered_p.z', 'estimate_z_position']]
+        plot_title = ['X_position', 'Y_position', 'Z_position']
     
-    # Check if the selected configuration exists
-    if config_name not in all_configs:
-        print(f"Configuration '{config_name}' not found. Available configurations: {list(all_configs.keys())}")
-        exit(1)
-    
-    # Extract configuration values
-    selected_config = all_configs[config_name]
-    plot_num = selected_config['plot_num']
-    plot_column = selected_config['plot_column']
-    plot_title = selected_config['plot_title']
-    
-    print(f"Using configuration: {config_name}")
+    # Initialize an empty DataFrame to hold all the data
+    data = pd.DataFrame()
 
-    ##############
-    data = ROS_Data(file_path)
-    data.load_data()
-    data.process_data()
-    data = data.get_processed_data()
+    # Process each file path
+    for path in file_path:
+        ros_data = ROS_Data(path)
+        ros_data.load_data()
+        ros_data.process_data()
+        ros_data = ros_data.get_processed_data()
+        # For the first iteration, just assign directly
+        if data.empty:
+            data = ros_data
+        else:
+            # For subsequent iterations, concatenate
+            data = pd.concat([data, ros_data], axis=1)
 
-    vicon_data = VICON_Data("data/0407_walk_vicon.csv", trigger_name="20250407:Trigger")
-    vicon_data.load_data()
-    LF = restrct(vicon_data.traj_data, 'O1')
-    RF = restrct(vicon_data.traj_data, 'O2')
-    RB = restrct(vicon_data.traj_data, 'O3')
-    LB = restrct(vicon_data.traj_data, 'O4')
+    #############################
 
-    vicon_position = []
-    vicon_velocity = []
-    last_centroid = [0, 0, 0]
+    # vicon_data = VICON_Data("data/0407_walk_vicon.csv", trigger_name="20250407:Trigger")
+    # vicon_data.load_data()
+    # LF = restrct(vicon_data.traj_data, 'O1')
+    # RF = restrct(vicon_data.traj_data, 'O2')
+    # RB = restrct(vicon_data.traj_data, 'O3')
+    # LB = restrct(vicon_data.traj_data, 'O4')
+
+    # vicon_position = []
+    # vicon_velocity = []
+    # last_centroid = [0, 0, 0]
     # for idx in vicon_data.traj_data.index[vicon_data.trigger_index+1:]:
     #     # For each marker, extract its X, Y, Z as a list of floats.
     #     try:
@@ -167,48 +189,38 @@ if __name__ == "__main__":
     # data = pd.concat([data, pd.DataFrame(vicon_velocity)], axis=1)
 
     fig, axes = plt.subplots(plot_num[0], plot_num[1], figsize=(15, 10))
-    axes = axes.flatten()  # Flatten the 2D array of axes for easier indexing
+
+    # Check if we have a single subplot or multiple subplots
+    if plot_num[0] == 1 and plot_num[1] == 1:
+        # For single subplot, convert to array for consistent handling
+        axes = np.array([axes])
+    else:
+        # For multiple subplots, flatten the 2D array
+        axes = axes.flatten()
 
     for i, columns in enumerate(plot_column):
         ax = axes[i]  # Get the current subplot
         title = plot_title[i][0]
         for column in columns:
-            # Check if there are "+,-,/,*" in column
-            operators = ['+', '-', '*', '/']
-            if any(op in column for op in operators):
-                # Parse the expression (e.g., "state_trq_r_a/state_trq_l_a")
-                for op in operators:
-                    if op in column:
-                        left, right = column.split(op)
-                        left_data = getattr(data, left.strip())
-                        right_data = getattr(data, right.strip())
-                        
-                        if op == '+':
-                            data = left_data + right_data
-                        elif op == '-':
-                            data = left_data - right_data
-                        elif op == '*':
-                            data = left_data * right_data
-                        elif op == '/':
-                            # Avoid division by zero
-                            data = np.divide(left_data, right_data, out=np.zeros_like(left_data), where=right_data!=0)
-                        break
+
+            plot_data = getattr(data, column)
+            # if (column == 'estimate_z_position'):
+            #     # Apply low-pass filter to the data
+            #     cutoff_freq = 10.0
+            #     plot_data = low_pass_filter(plot_data, cutoff_freq, file_sample_rate)
+
+            if (column in ['p.x','filtered_p.x', 'filtered_p.y','p.y','filtered_p.z','p.z']):
+                time = np.arange(len(plot_data)) / file_sample_rate
             else:
-                # Get data from data using attribute access
-                plot_data = getattr(data, column)
-
-            # # Apply low-pass filter to the data
-            # cutoff_freq = 10
-            # data = low_pass_filter(data, cutoff_freq, file_sample_rate)
-
-            # Calculate time axis
-            time = np.arange(len(plot_data)) / file_sample_rate
+                time = np.arange(len(plot_data)) / file_sample_rate
             # Plot data on the current subplot
             ax.plot(time, plot_data, label=column)
         
         ax.set_title(title)
-        ax.set_xlabel('')
-        ax.set_ylabel('')
+        ax.set_xlabel('time (s)')
+        ax.set_ylabel('(m)')
+        # ax.set_xlim(0, 10)  # Set x-axis limits
+        # ax.set_ylim(0.18, 0.2)  # Set y-axis limits
         ax.legend()
         ax.grid(True)
 
