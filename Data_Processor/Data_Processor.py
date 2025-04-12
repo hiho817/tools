@@ -1,30 +1,5 @@
 import pandas as pd
 import re
-
-class ROS_Data:
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.data = None
-        self.data_process = None
-
-    def load_data(self):
-        # Load data from CSV, assuming the first row contains the column titles
-        self.data = pd.read_csv(self.file_path, header=0)
-        print("Data loaded successfully.")
-
-    def process_data(self):
-        if self.data is None:
-            raise ValueError("Data not loaded. Please call load_data() first.")
-        # Example of processing: copy data and fill missing values with 0
-        self.data_process = self.data.copy()
-        self.data_process.fillna(0, inplace=True)
-        print("Data processed successfully.")
-
-    def get_processed_data(self):
-        if self.data_process is None:
-            self.process_data()
-        return self.data_process
-
 class VICON_Data:
     def __init__(self, file_path, trigger_name="trigger"):
         """
@@ -225,12 +200,3 @@ if __name__ == "__main__":
     
 #     # Display the computed trigger time
 #     print("\nTrigger Time:", vicon.trigger_time)
-
-
-#Example usage of ros data:
-# if __name__ == "__main__":
-#     file_path = "data/imu_test_from_imu.csv"  # Replace with your actual file path
-#     ros_data = ROS_Data(file_path)
-#     ros_data.load_data()
-#     ros_data.process_data()
-#     processed_data = ros_data.get_processed_data()
