@@ -5,7 +5,7 @@ import os
 import matplotlib.pyplot as plt
 
 # Define the file path
-file_path = 'data/0514/force_collect.csv'
+file_path = 'data/0514/force_walk.csv'
 
 # Check if file exists
 if not os.path.exists(file_path):
@@ -79,7 +79,7 @@ time = np.arange(len(data)) / 1000.0  # time in seconds
 # plt.show()
 
 plt.figure(figsize=(10, 6))
-plt.plot(time, data['force_Fx_a'])
+plt.plot(time, np.array(data['force_Fx_a']))
 plt.xlabel('Time (seconds)')
 plt.ylabel('Forces (N)')
 plt.title('Force Fx from A Modules')
