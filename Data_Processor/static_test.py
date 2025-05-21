@@ -5,7 +5,7 @@ import os
 import matplotlib.pyplot as plt
 
 # Define the file path
-file_path = 'data/0520/force_test_stand_updown.csv'
+file_path = 'data/0520/force_test_stand.csv'
 
 # Check if file exists
 if not os.path.exists(file_path):
@@ -33,121 +33,44 @@ if missing_columns:
     # print("Available columns:", data.columns.tolist())
     exit(1)
 
-# Calculate the sum of forces in Y direction for all modules
-fx_sum = data['force_Fx_a'] + data['force_Fx_b'] + data['force_Fx_c'] + data['force_Fx_d']
-fy_sum = data['force_Fy_a'] + data['force_Fy_b'] + data['force_Fy_c'] + data['force_Fy_d']
-A_force = np.sqrt(data['force_Fx_a']**2 + data['force_Fy_a']**2)
 
-fy_sum_acc = fx_sum + data['imu_lin_acc_z'] * 20.0 # kg
+MASS = 20.0  # kg
+GRAVITY = 9.81  # m/s^2
+Fz = data['force_Fy_a'] + data['force_Fy_b'] + data['force_Fy_c'] + data['force_Fy_d'] - data['imu_lin_acc_z'] * MASS - GRAVITY * MASS
+Fx = data['force_Fx_a'] + data['force_Fx_b'] + data['force_Fx_c'] + data['force_Fx_d'] - data['imu_lin_acc_x'] * MASS
+
+
+# Define a parameter for the time range to plot
+plot_time = [5.5, 10]  # in seconds, [init, final]
 
 # Create time array (1000Hz sampling rate)
 time = np.arange(len(data)) / 1000.0  # time in seconds
 
-# Plot the sum of forces over time
+# Filter data based on the plot_time range
+start_idx = int(plot_time[0] * 1000)  # Convert seconds to index
+end_idx = int(plot_time[1] * 1000)    # Convert seconds to index
+
+# Ensure indices are within bounds
+start_idx = max(0, start_idx)
+end_idx = min(len(time), end_idx)
+
+# Plot the sum of forces over the specified time range
 plt.figure(figsize=(10, 6))
-plt.plot(time, np.array(fy_sum))
+plt.subplot(2, 1, 1)
+plt.plot(time[start_idx:end_idx], np.array(Fz)[start_idx:end_idx], label='Fz')
 plt.xlabel('Time (seconds)')
-plt.ylabel('Forces (N)')
-plt.title('Total Force in Y Direction from All Modules')
+plt.ylabel('Force Fz (N)')
+plt.title('Force Fz')
+plt.legend()
 plt.grid(True)
-plt.tight_layout()
-plt.savefig('fy_sum.png')
-plt.show()
 
-plt.figure(figsize=(10, 6))
-plt.plot(time, np.array(fx_sum))
+plt.subplot(2, 1, 2)
+plt.plot(time[start_idx:end_idx], np.array(Fx)[start_idx:end_idx], label='Fx')
 plt.xlabel('Time (seconds)')
-plt.ylabel('Forces (N)')
-plt.title('Total Force in X Direction from All Modules')
+plt.ylabel('Force Fx (N)')
+plt.title('Force Fx')
+plt.legend()
 plt.grid(True)
+
 plt.tight_layout()
-plt.savefig('fx_sum.png')
-plt.show()
-
-# plt.figure(figsize=(10, 6))
-# plt.plot(time, A_force)
-# plt.xlabel('Time (seconds)')
-# plt.ylabel('Forces (N)')
-# plt.title('Force from A Modules')
-# plt.grid(True)
-# plt.tight_layout()
-# # plt.savefig('total_fx_force.png')
-# plt.show()
-
-# plt.figure(figsize=(10, 6))
-# plt.plot(time, data['force_Fy_a'])
-# plt.xlabel('Time (seconds)')
-# plt.ylabel('Forces (N)')
-# plt.title('Force Fy from A Modules')
-# plt.grid(True)
-# plt.tight_layout()
-# # plt.savefig('total_fx_force.png')
-# plt.show()
-
-# plt.figure(figsize=(10, 6))
-# plt.plot(time, np.array(data['force_Fx_a']))
-# plt.xlabel('Time (seconds)')
-# plt.ylabel('Forces (N)')
-# plt.title('Force Fx from A Modules')
-# plt.grid(True)
-# plt.tight_layout()
-# # plt.savefig('total_fx_force.png')
-# plt.show()
-
-# fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(10, 12), sharex=True)
-
-# # Plot for module A
-# axes[0].plot(time, np.array(data['force_Fx_a']), label='Fx')
-# # axes[0].plot(time, data['force_Fy_a'], label='Fy')
-# axes[0].set_ylabel('Force (N)')
-# axes[0].set_title('Module A Forces')
-# axes[0].legend()
-# axes[0].grid(True)
-
-# # Plot for module B
-# axes[1].plot(time, np.array(data['force_Fx_b']), label='Fx')
-# # axes[1].plot(time, data['force_Fy_b'], label='Fy')
-# axes[1].set_ylabel('Force (N)')
-# axes[1].set_title('Module B Forces')
-# axes[1].legend()
-# axes[1].grid(True)
-
-# # Plot for module C
-# axes[2].plot(time, np.array(data['force_Fx_c']), label='Fx')
-# # axes[2].plot(time, data['force_Fy_c'], label='Fy')
-# axes[2].set_ylabel('Force (N)')
-# axes[2].set_title('Module C Forces')
-# axes[2].legend()
-# axes[2].grid(True)
-
-# # Plot for module D
-# axes[3].plot(time, np.array(data['force_Fx_d']), label='Fx')
-# # axes[3].plot(time, data['force_Fy_d'], label='Fy')
-# axes[3].set_xlabel('Time (seconds)')
-# axes[3].set_ylabel('Force (N)')
-# axes[3].set_title('Module D Forces')
-# axes[3].legend()
-# axes[3].grid(True)
-
-# plt.tight_layout()
-# plt.show()
-
-# plt.figure(figsize=(10, 6))
-# plt.plot(time, np.array(data['imu_lin_acc_z']))
-# plt.xlabel('Time (seconds)')
-# plt.ylabel('acceleration (N)')
-# plt.title('Body Z acceleration')
-# plt.grid(True)
-# plt.tight_layout()
-# # plt.savefig('total_fx_force.png')
-# plt.show()
-
-plt.figure(figsize=(10, 6))
-plt.plot(time, np.array(fy_sum_acc))
-plt.xlabel('Time (seconds)')
-plt.ylabel('Total Force (N)')
-plt.title('Z direction kinostaic')
-plt.grid(True)
-plt.tight_layout()
-plt.savefig('total_fx_force.png')
 plt.show()
